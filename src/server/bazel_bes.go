@@ -17,16 +17,21 @@ const (
 type server struct{}
 
 func (s *server) PublishLifecycleEvent(ctx context.Context, req *pb.PublishLifecycleEventRequest) (*pb_empty.Empty, error) {
-	log.Println("Got life cycle event for build", req.BuildEvent.StreamId.BuildId)
+	log.Println("Got life cycle event for build", req.BuildEvent.StreamId.BuildId, req.BuildEvent)
 	return &pb_empty.Empty{}, nil
 }
 
 func (s *server) PublishBuildToolEventStream(stream pb.PublishBuildEvent_PublishBuildToolEventStreamServer) error {
 	log.Println("Reading build tool event stream")
-	req, _ := stream.Recv()
-	log.Println("Got build event:", req.OrderedBuildEvent.Event.String())
-	resp := &pb.PublishBuildToolEventStreamResponse{StreamId: req.OrderedBuildEvent.StreamId, SequenceNumber: req.OrderedBuildEvent.SequenceNumber}
-	stream.Send(resp)
+	for {
+		req, _ := stream.Recv()
+		if req == nil || req.OrderedBuildEvent == nil || req.OrderedBuildEvent.Event == nil {
+			break
+		}
+		log.Println("Got build event:", req.OrderedBuildEvent.Event.String())
+		resp := &pb.PublishBuildToolEventStreamResponse{StreamId: req.OrderedBuildEvent.StreamId, SequenceNumber: req.OrderedBuildEvent.SequenceNumber}
+		stream.Send(resp)
+	}
 	return nil
 }
 
