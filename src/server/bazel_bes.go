@@ -16,11 +16,13 @@ const (
 // server is used to implement helloworld.GreeterServer.
 type server struct{}
 
-func (s *server) PublishLifecycleEvent(context.Context, *pb.PublishLifecycleEventRequest) (*pb_empty.Empty, error) {
+func (s *server) PublishLifecycleEvent(ctx context.Context, req *pb.PublishLifecycleEventRequest) (*pb_empty.Empty, error) {
+	log.Println("Got life cycle event for build", req.BuildEvent.StreamId.BuildId)
 	return &pb_empty.Empty{}, nil
 }
 
 func (s *server) PublishBuildToolEventStream(stream pb.PublishBuildEvent_PublishBuildToolEventStreamServer) error {
+	log.Println("Reading build tool event stream")
 	req, _ := stream.Recv()
 	log.Println("Got build event:", req.OrderedBuildEvent.Event.String())
 	resp := &pb.PublishBuildToolEventStreamResponse{StreamId: req.OrderedBuildEvent.StreamId, SequenceNumber: req.OrderedBuildEvent.SequenceNumber}
