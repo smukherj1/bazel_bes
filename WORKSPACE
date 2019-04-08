@@ -19,9 +19,18 @@ http_archive(
     build_file = "@bazel_bes//:BUILD.googleapis",
 )
 
+http_archive(
+    name = "bazel_gazelle",
+    urls = ["https://github.com/bazelbuild/bazel-gazelle/releases/download/0.17.0/bazel-gazelle-0.17.0.tar.gz"],
+    sha256 = "3c681998538231a2d24d0c07ed5a7658cb72bfb5fd4bf9911157c0e9ac6a2687",
+)
+
 load("@build_stack_rules_proto//go:deps.bzl", "go_proto_compile")
 go_proto_compile()
 
 load("@io_bazel_rules_go//go:def.bzl", "go_register_toolchains", "go_rules_dependencies")
 go_rules_dependencies()
 go_register_toolchains()
+
+load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies")
+gazelle_dependencies()
