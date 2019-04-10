@@ -33,6 +33,8 @@ func (s *server) PublishBuildToolEventStream(stream pb.PublishBuildEvent_Publish
 			log.Println("Got InvocationAttemptStarted event, attempt", e.InvocationAttemptStarted.AttemptNumber)
 		case *pb.BuildEvent_InvocationAttemptFinished_:
 			log.Println("Got InvocationAttemptFinished event, result", e.InvocationAttemptFinished.GetInvocationStatus().GetResult().String())
+		case *pb.BuildEvent_BazelEvent:
+			log.Println("Got BazelEvent", e.BazelEvent)
 		}
 		resp := &pb.PublishBuildToolEventStreamResponse{StreamId: req.OrderedBuildEvent.StreamId, SequenceNumber: req.OrderedBuildEvent.SequenceNumber}
 		stream.Send(resp)
