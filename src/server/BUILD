@@ -9,7 +9,7 @@ go_library(
         "@go_googleapis//google/devtools/build/v1:build_go_proto",
         "@io_bazel_rules_go//proto/wkt:empty_go_proto",
         "@org_golang_google_grpc//:go_default_library",
-        "//src/proto:build_event_stream_go_proto",
+        "@bazel_bes//src/proto:build_event_stream_go_proto",
     ],
 )
 
