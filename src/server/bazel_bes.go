@@ -1,10 +1,11 @@
 package main
 
 import (
+	bazel_pb "bazel_bes/proto"
 	"context"
+	pb_ptypes "github.com/golang/protobuf/ptypes"
 	pb_empty "github.com/golang/protobuf/ptypes/empty"
 	pb "google.golang.org/genproto/googleapis/devtools/build/v1"
-	//bazel_pb "bazel_bes/proto"
 	"google.golang.org/grpc"
 	"log"
 	"net"
@@ -35,7 +36,12 @@ func (s *server) PublishBuildToolEventStream(stream pb.PublishBuildEvent_Publish
 		case *pb.BuildEvent_InvocationAttemptFinished_:
 			log.Println("Got InvocationAttemptFinished event, result", e.InvocationAttemptFinished.GetInvocationStatus().GetResult().String())
 		case *pb.BuildEvent_BazelEvent:
-			log.Println("Got BazelEvent", e.BazelEvent)
+			be := &bazel_pb.BuildEvent{}
+			if err := pb_ptypes.UnmarshalAny(e.BazelEvent, be); err != nil {
+				log.Printf("ERROR: Unable to unmarshall Bazel BuildEvent from BazelEvent: %v\n", err)
+			} else {
+				log.Println("Got Bazel BuildEvent", be.GetId())
+			}
 		}
 		resp := &pb.PublishBuildToolEventStreamResponse{StreamId: req.OrderedBuildEvent.StreamId, SequenceNumber: req.OrderedBuildEvent.SequenceNumber}
 		stream.Send(resp)
@@ -50,7 +56,7 @@ func main() {
 	}
 	s := grpc.NewServer()
 	pb.RegisterPublishBuildEventServer(s, &server{})
-	log.Println("Launching Bazel BES service on", port)
+	log.Printf("Launching Bazel BES service on endpoint 0.0.0.0%s\n", port)
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}

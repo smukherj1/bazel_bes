@@ -5,7 +5,6 @@ proto_library(
     srcs = ["build_event_stream.proto"],
 )
 
-
 go_proto_library(
     name = "build_event_stream_go_proto",
     deps = [
@@ -15,4 +14,3 @@ go_proto_library(
     importpath = "bazel_bes/proto",
     visibility = ["//visibility:public"],
 )
-
