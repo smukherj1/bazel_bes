@@ -1,289 +1,25 @@
-syntax = "proto3";
-package build_event_stream;
-
-enum OptionEffectTag {
-  // This option's effect or intent is unknown.
-  UNKNOWN = 0;
-
-  // This flag has literally no effect.
-  NO_OP = 1;
-
-  LOSES_INCREMENTAL_STATE = 2;
-  CHANGES_INPUTS = 3;
-  AFFECTS_OUTPUTS = 4;
-  BUILD_FILE_SEMANTICS = 5;
-  BAZEL_INTERNAL_CONFIGURATION = 6;
-  LOADING_AND_ANALYSIS = 7;
-  EXECUTION = 8;
-  HOST_MACHINE_RESOURCE_OPTIMIZATIONS = 9;
-  EAGERNESS_TO_EXIT = 10;
-  BAZEL_MONITORING = 11;
-  TERMINAL_OUTPUT = 12;
-  ACTION_COMMAND_LINES = 13;
-  TEST_RUNNER = 14;
-}
-
-// Docs in java enum.
-enum OptionMetadataTag {
-  EXPERIMENTAL = 0;
-  INCOMPATIBLE_CHANGE = 1;
-  DEPRECATED = 2;
-  HIDDEN = 3;
-  INTERNAL = 4;
-  TRIGGERED_BY_ALL_INCOMPATIBLE_CHANGES = 5;
-}
-
-// Representation of a Bazel command line.
-message CommandLine {
-  // A title for this command line value, to differentiate it from others.
-  // In particular, a single invocation may wish to report both the literal and
-  // canonical command lines, and this label would be used to differentiate
-  // between both versions. This is a string for flexibility.
-  string command_line_label = 1;
-
-  // A Bazel command line is made of distinct parts. For example,
-  //    `bazel --nomaster_bazelrc test --nocache_test_results //foo:aTest`
-  // has the executable "bazel", a startup flag, a command "test", a command
-  // flag, and a test target. There could be many more flags and targets, or
-  // none (`bazel info` for example), but the basic structure is there. The
-  // command line should be broken down into these logical sections here.
-  repeated CommandLineSection sections = 2;
-}
-
-// A section of the Bazel command line.
-message CommandLineSection {
-  // The name of this section, such as "startup_option" or "command".
-  string section_label = 1;
-
-  oneof section_type {
-    // Sections with non-options, such as the list of targets or the command,
-    // should use simple string chunks.
-    ChunkList chunk_list = 2;
-
-    // Startup and command options are lists of options and belong here.
-    OptionList option_list = 3;
-  }
-}
-
-// Wrapper to allow a list of strings in the "oneof" section_type.
-message ChunkList {
-  repeated string chunk = 1;
-}
-
-// Wrapper to allow a list of options in the "oneof" section_type.
-message OptionList {
-  repeated Option option = 1;
-}
-
-// A single command line option.
+// Copyright 2016 The Bazel Authors. All rights reserved.
 //
-// This represents the option itself, but does not take into account the type of
-// option or how the parser interpreted it. If this option is part of a command
-// line that represents the actual input that Bazel received, it would, for
-// example, include expansion flags as they are. However, if this option
-// represents the canonical form of the command line, with the values as Bazel
-// understands them, then the expansion flag, which has no value, would not
-// appear, and the flags it expands to would.
-message Option {
-  // How the option looks with the option and its value combined. Depending on
-  // the purpose of this command line report, this could be the canonical
-  // form, or the way that the flag was set.
-  //
-  // Some examples: this might be `--foo=bar` form, or `--foo bar` with a space;
-  // for boolean flags, `--nobaz` is accepted on top of `--baz=false` and other
-  // negating values, or for a positive value, the unqualified `--baz` form
-  // is also accepted. This could also be a short `-b`, if the flag has an
-  // abbreviated form.
-  string combined_form = 1;
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-  // The canonical name of the option, without the preceding dashes.
-  string option_name = 2;
+syntax = "proto3";
 
-  // The value of the flag, or unset for flags that do not take values.
-  // Especially for boolean flags, this should be in canonical form, the
-  // combined_form field above gives room for showing the flag as it was set
-  // if that is preferred.
-  string option_value = 3;
+package build_event_stream;
+option go_package = "src/proto";
 
-  // This flag's tagged effects. See OptionEffectTag's java documentation for
-  // details.
-  repeated OptionEffectTag effect_tags = 4;
 
-  // Metadata about the flag. See OptionMetadataTag's java documentation for
-  // details.
-  repeated OptionMetadataTag metadata_tags = 5;
-}
-
-// The --invocation_policy flag takes a base64-encoded binary-serialized or text
-// formatted InvocationPolicy message.
-message InvocationPolicy {
-  // Order matters.
-  // After expanding policies on expansion flags or flags with implicit
-  // requirements, only the final policy on a specific flag will be enforced
-  // onto the user's command line.
-  repeated FlagPolicy flag_policies = 1;
-}
-
-// A policy for controlling the value of a flag.
-message FlagPolicy {
-  // The name of the flag to enforce this policy on.
-  //
-  // Note that this should be the full name of the flag, not the abbreviated
-  // name of the flag. If the user specifies the abbreviated name of a flag,
-  // that flag will be matched using its full name.
-  //
-  // The "no" prefix will not be parsed, so for boolean flags, use
-  // the flag's full name and explicitly set it to true or false.
-  string flag_name = 1;
-
-  // If set, this flag policy is applied only if one of the given commands or a
-  // command that inherits from one of the given commands is being run. For
-  // instance, if "build" is one of the commands here, then this policy will
-  // apply to any command that inherits from build, such as info, coverage, or
-  // test. If empty, this flag policy is applied for all commands. This allows
-  // the policy setter to add all policies to the proto without having to
-  // determine which Bazel command the user is actually running. Additionally,
-  // Bazel allows multiple flags to be defined by the same name, and the
-  // specific flag definition is determined by the command.
-  repeated string commands = 2;
-
-  oneof operation {
-    SetValue set_value = 3;
-    UseDefault use_default = 4;
-    DisallowValues disallow_values = 5;
-    AllowValues allow_values = 6;
-  }
-}
-
-message SetValue {
-  // Use this value for the specified flag, overriding any default or user-set
-  // value (unless append is set to true for repeatable flags).
-  //
-  // This field is repeated for repeatable flags. It is an error to set
-  // multiple values for a flag that is not actually a repeatable flag.
-  // This requires at least 1 value, if even the empty string.
-  //
-  // If the flag allows multiple values, all of its values are replaced with the
-  // value or values from the policy (i.e., no diffing or merging is performed),
-  // unless the append field (see below) is set to true.
-  //
-  // Note that some flags are tricky. For example, some flags look like boolean
-  // flags, but are actually Void expansion flags that expand into other flags.
-  // The Bazel flag parser will accept "--void_flag=false", but because
-  // the flag is Void, the "=false" is ignored. It can get even trickier, like
-  // "--novoid_flag" which is also an expansion flag with the type Void whose
-  // name is explicitly "novoid_flag" and which expands into other flags that
-  // are the opposite of "--void_flag". For expansion flags, it's best to
-  // explicitly override the flags they expand into.
-  //
-  // Other flags may be differently tricky: A flag could have a converter that
-  // converts some string to a list of values, but that flag may not itself have
-  // allowMultiple set to true.
-  //
-  // An example is "--test_tag_filters": this flag sets its converter to
-  // CommaSeparatedOptionListConverter, but does not set allowMultiple to true.
-  // So "--test_tag_filters=foo,bar" results in ["foo", "bar"], however
-  // "--test_tag_filters=foo --test_tag_filters=bar" results in just ["bar"]
-  // since the 2nd value overrides the 1st.
-  //
-  // Similarly, "--test_tag_filters=foo,bar --test_tag_filters=baz,qux" results
-  // in ["baz", "qux"]. For flags like these, the policy should specify
-  // "foo,bar" instead of separately specifying "foo" and "bar" so that the
-  // converter is appropriately invoked.
-  //
-  // Note that the opposite is not necessarily
-  // true: for a flag that specifies allowMultiple=true, "--flag=foo,bar"
-  // may fail to parse or result in an unexpected value.
-  repeated string flag_value = 1;
-
-  // Whether to allow this policy to be overridden by user-specified values.
-  // When set, if the user specified a value for this flag, use the value
-  // from the user, otherwise use the value specified in this policy.
-  bool overridable = 2;
-
-  // If true, and if the flag named in the policy is a repeatable flag, then
-  // the values listed in flag_value do not replace all the user-set or default
-  // values of the flag, but instead append to them. If the flag is not
-  // repeatable, then this has no effect.
-  bool append = 3;
-}
-
-message UseDefault {
-  // Use the default value of the flag, as defined by Bazel (or equivalently, do
-  // not allow the user to set this flag).
-  //
-  // Note on implementation: UseDefault sets the default by clearing the flag,
-  // so that when the value is requested and no flag is found, the flag parser
-  // returns the default. This is mostly relevant for expansion flags: it will
-  // erase user values in *all* flags that the expansion flag expands to. Only
-  // use this on expansion flags if this is acceptable behavior. Since the last
-  // policy wins, later policies on this same flag will still remove the
-  // expanded UseDefault, so there is a way around, but it's really best not to
-  // use this on expansion flags at all.
-}
-
-message DisallowValues {
-  // Obsolete new_default_value field.
-  reserved 2;
-
-  // It is an error for the user to use any of these values (that is, the Bazel
-  // command will fail), unless new_value or use_default is set.
-  //
-  // For repeatable flags, if any one of the values in the flag matches a value
-  // in the list of disallowed values, an error is thrown.
-  //
-  // Care must be taken for flags with complicated converters. For example,
-  // it's possible for a repeated flag to be of type List<List<T>>, so that
-  // "--foo=a,b --foo=c,d" results in foo=[["a","b"], ["c", "d"]]. In this case,
-  // it is not possible to disallow just "b", nor will ["b", "a"] match, nor
-  // will ["b", "c"] (but ["a", "b"] will still match).
-  repeated string disallowed_values = 1;
-
-  oneof replacement_value {
-    // If set and if the value of the flag is disallowed (including the default
-    // value of the flag if the user doesn't specify a value), use this value as
-    // the value of the flag instead of raising an error. This does not apply to
-    // repeatable flags and is ignored if the flag is a repeatable flag.
-    string new_value = 3;
-
-    // If set and if the value of the flag is disallowed, use the default value
-    // of the flag instead of raising an error. Unlike new_value, this works for
-    // repeatable flags, but note that the default value for repeatable flags is
-    // always empty.
-    //
-    // Note that it is an error to disallow the default value of the flag and
-    // to set use_default, unless the flag is a repeatable flag where the
-    // default value is always the empty list.
-    UseDefault use_default = 4;
-  }
-}
-
-message AllowValues {
-  // Obsolete new_default_value field.
-  reserved 2;
-
-  // It is an error for the user to use any value not in this list, unless
-  // new_value or use_default is set.
-  repeated string allowed_values = 1;
-
-  oneof replacement_value {
-    // If set and if the value of the flag is disallowed (including the default
-    // value of the flag if the user doesn't specify a value), use this value as
-    // the value of the flag instead of raising an error. This does not apply to
-    // repeatable flags and is ignored if the flag is a repeatable flag.
-    string new_value = 3;
-
-    // If set and if the value of the flag is disallowed, use the default value
-    // of the flag instead of raising an error. Unlike new_value, this works for
-    // repeatable flags, but note that the default value for repeatable flags is
-    // always empty.
-    //
-    // Note that it is an error to disallow the default value of the flag and
-    // to set use_default, unless the flag is a repeatable flag where the
-    // default value is always the empty list.
-    UseDefault use_default = 4;
-  }
-}
+import "src/proto/invocation_policy.proto";
+import "src/proto/command_line.proto";
 
 // Identifier for a build event. It is deliberately structured to also provide
 // information about which build target etc the event is related to.
@@ -499,7 +235,7 @@ message Progress {
 // the build is aborted prematurely for some reason.
 message Aborted {
   enum AbortReason {
-    UNKNOWN1 = 0;
+    UNKNOWN = 0;
 
     // The user requested the build to be aborted (e.g., by hitting Ctl-C).
     USER_INTERRUPTED = 1;
@@ -585,7 +321,7 @@ message OptionsParsed {
   repeated string explicit_startup_options = 2;
   repeated string cmd_line = 3;
   repeated string explicit_cmd_line = 4;
-  InvocationPolicy invocation_policy = 5;
+  blaze.invocation_policy.InvocationPolicy invocation_policy = 5;
   string tool_tag = 6;
 }
 
@@ -626,7 +362,7 @@ message PatternExpanded {
 // Enumeration type characterizing the size of a test, as specified by the
 // test rule.
 enum TestSize {
-  UNKNOWN2 = 0;
+  UNKNOWN = 0;
   SMALL = 1;
   MEDIUM = 2;
   LARGE = 3;
@@ -943,7 +679,7 @@ message BuildEvent {
     Aborted aborted = 4;
     BuildStarted started = 5;
     UnstructuredCommandLine unstructured_command_line = 12;
-    CommandLine structured_command_line = 22;
+    command_line.CommandLine structured_command_line = 22;
     OptionsParsed options_parsed = 13;
     WorkspaceStatus workspace_status = 16;
     Fetch fetch = 21;
