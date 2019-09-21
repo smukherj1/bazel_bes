@@ -25,26 +25,22 @@ func (s *server) PublishLifecycleEvent(ctx context.Context, req *pb.PublishLifec
 }
 
 func (s *server) processCompleted(id *bazel_pb.BuildEventId_TargetCompletedId, c *bazel_pb.TargetComplete) error {
+	log.Printf("Completed %v, aspect %v, configuration %v", id.GetLabel(), id.GetAspect(), id.GetConfiguration())
 	return nil
 }
 
 func (s *server) processAction(id *bazel_pb.BuildEventId_ActionCompletedId, a *bazel_pb.ActionExecuted) error {
+	log.Printf("Completed action %v, config %v, output %v", id.GetLabel(), id.GetConfiguration(), id.GetPrimaryOutput())
 	return nil
 }
 
 func (s *server) processTestResult(id *bazel_pb.BuildEventId_TestResultId, r *bazel_pb.TestResult) error {
+	log.Printf("Completed test %v, status %v, cached %v", id.GetLabel(), r.GetStatus().String(), r.GetCachedLocally())
 	return nil
 }
 
 func (s *server) processTestSummary(id *bazel_pb.BuildEventId_TestSummaryId, ts *bazel_pb.TestSummary) error {
-	return nil
-}
-
-func (s *server) processBuildFinished(f *bazel_pb.BuildFinished) error {
-	return nil
-}
-
-func (s *server) processBuildAborted(a *bazel_pb.Aborted) error {
+	log.Printf("Test summary %v, config %v, overall status %v", id.GetLabel(), id.GetConfiguration(), ts.GetOverallStatus().String())
 	return nil
 }
 
@@ -60,12 +56,6 @@ func (s *server) processBuildEvent(be *bazel_pb.BuildEvent) error {
 	}
 	if ts := be.GetTestSummary(); ts != nil {
 		return s.processTestSummary(be.GetId().GetTestSummary(), ts)
-	}
-	if f := be.GetFinished(); f != nil {
-		return s.processBuildFinished(f)
-	}
-	if a := be.GetAborted(); a != nil {
-		return s.processBuildAborted(a)
 	}
 	return nil
 }
