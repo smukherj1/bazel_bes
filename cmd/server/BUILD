@@ -8,6 +8,7 @@ go_library(
     deps = [
         "//proto:build_event_stream_go_proto",
         "@com_github_golang_protobuf//ptypes:go_default_library_gen",
+        "@com_github_pkg_errors//:go_default_library",
         "@go_googleapis//google/devtools/build/v1:build_go_proto",
         "@io_bazel_rules_go//proto/wkt:empty_go_proto",
         "@org_golang_google_grpc//:go_default_library",
