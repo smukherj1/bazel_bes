@@ -1,4 +1,5 @@
 package(default_visibility = ["//visibility:public"])
+
 load("@build_stack_rules_proto//go:go_proto_library.bzl", "go_proto_library")
 
 proto_library(
@@ -20,7 +21,10 @@ proto_library(
 proto_library(
     name = "build_event_stream_proto",
     srcs = ["build_event_stream.proto"],
-    deps = [":invocation_policy_proto", ":command_line_proto"],
+    deps = [
+        ":invocation_policy_proto",
+        ":command_line_proto",
+    ],
 )
 
 go_proto_library(
@@ -28,6 +32,6 @@ go_proto_library(
     deps = [
         ":build_event_stream_proto",
     ],
-    importpath = "bazel_bes/proto",
+    importpath = "github.com/smukherj1/bazel_bes/proto",
     visibility = ["//visibility:public"],
 )

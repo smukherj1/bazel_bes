@@ -14,7 +14,7 @@
 
 syntax = "proto2";
 package blaze.invocation_policy;
-option go_package = "src/proto";
+option go_package = "proto";
 
 // The --invocation_policy flag takes a base64-encoded binary-serialized or text
 // formatted InvocationPolicy message.

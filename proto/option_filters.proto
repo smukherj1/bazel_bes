@@ -13,7 +13,7 @@
 // limitations under the License.
 syntax = "proto3";
 package options;
-option go_package = "src/proto";
+option go_package = "proto";
 
 // option java_api_version = 2;
 // IMPORTANT NOTE: These two enums must be kept in sync with their Java

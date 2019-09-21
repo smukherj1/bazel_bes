@@ -14,9 +14,9 @@
 
 syntax = "proto3";
 package command_line;
-option go_package = "src/proto";
+option go_package = "proto";
 
-import "src/proto/option_filters.proto";
+import "proto/option_filters.proto";
 
 // Representation of a Bazel command line.
 message CommandLine {

@@ -1,14 +1,15 @@
 package main
 
 import (
-	bazel_pb "bazel_bes/proto"
 	"context"
-	pb_ptypes "github.com/golang/protobuf/ptypes"
-	pb_empty "github.com/golang/protobuf/ptypes/empty"
-	pb "google.golang.org/genproto/googleapis/devtools/build/v1"
-	"google.golang.org/grpc"
 	"log"
 	"net"
+
+	pb_ptypes "github.com/golang/protobuf/ptypes"
+	pb_empty "github.com/golang/protobuf/ptypes/empty"
+	bazel_pb "github.com/smukherj1/bazel_bes/proto"
+	pb "google.golang.org/genproto/googleapis/devtools/build/v1"
+	"google.golang.org/grpc"
 )
 
 const (

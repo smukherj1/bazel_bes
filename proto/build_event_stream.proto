@@ -15,11 +15,11 @@
 syntax = "proto3";
 
 package build_event_stream;
-option go_package = "src/proto";
+option go_package = "proto";
 
 
-import "src/proto/invocation_policy.proto";
-import "src/proto/command_line.proto";
+import "proto/invocation_policy.proto";
+import "proto/command_line.proto";
 
 // Identifier for a build event. It is deliberately structured to also provide
 // information about which build target etc the event is related to.
